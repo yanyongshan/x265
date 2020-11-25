@@ -61,12 +61,15 @@ void NALList::serialize(NalUnitType nalUnitType, const Bitstream& bs)
 {
     static const char startCodePrefix[] = { 0, 0, 0, 1 };
 
+    //数据载荷大小
     uint32_t payloadSize = bs.getNumberOfWrittenBytes();
+    //数据载荷起始指针
     const uint8_t* bpayload = bs.getFIFO();
     if (!bpayload)
         return;
 
     uint32_t nextSize = m_occupancy + sizeof(startCodePrefix) + 2 + payloadSize + (payloadSize >> 1) + m_extraOccupancy;
+    //容量不够，重新分配
     if (nextSize > m_allocSize)
     {
         uint8_t *temp = X265_MALLOC(uint8_t, nextSize);
@@ -92,8 +95,10 @@ void NALList::serialize(NalUnitType nalUnitType, const Bitstream& bs)
     uint8_t *out = m_buffer + m_occupancy;
     uint32_t bytes = 0;
 
+    //添加NALU分隔符
     if (!m_annexB)
     {
+        //不是AnnexB码流,即AVCC格式码流，4字段长度+NAL
         /* Will write size later */
         bytes += 4;
     }
@@ -113,6 +118,7 @@ void NALList::serialize(NalUnitType nalUnitType, const Bitstream& bs)
      * nal_unit_type            6-bits
      * nuh_reserved_zero_6bits  6-bits
      * nuh_temporal_id_plus1    3-bits */
+    //添加nal头
     out[bytes++] = (uint8_t)nalUnitType << 1;
     out[bytes++] = 1 + (nalUnitType == NAL_UNIT_CODED_SLICE_TSA_N);
 
@@ -122,6 +128,7 @@ void NALList::serialize(NalUnitType nalUnitType, const Bitstream& bs)
      *  - 0x000000
      *  - 0x000001
      *  - 0x000002 */
+    //冲突避免，插入0x03
     for (uint32_t i = 0; i < payloadSize; i++)
     {
         if (i > 2 && !out[bytes - 2] && !out[bytes - 3] && out[bytes - 1] <= 0x03 && nalUnitType != NAL_UNIT_UNSPECIFIED)
@@ -149,9 +156,11 @@ void NALList::serialize(NalUnitType nalUnitType, const Bitstream& bs)
      * ... when the last byte of the RBSP data is equal to 0x00 (which can
      * only occur when the RBSP ends in a cabac_zero_word), a final byte equal
      * to 0x03 is appended to the end of the data.  */
+    //如果RBSP最后一个字节为0(cabac_zero_word)，追加0x03
     if (!out[bytes - 1])
         out[bytes++] = 0x03;
 
+    //如果不是以起始码分隔的方式，填入NALU长度
     if (!m_annexB)
     {
         uint32_t dataSize = bytes - 4;

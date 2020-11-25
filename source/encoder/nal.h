@@ -38,17 +38,21 @@ public:
     static const int MAX_NAL_UNITS = 16;
 
 public:
-
+    //NALU列表
     x265_nal    m_nal[MAX_NAL_UNITS];
+    //NALU数量
     uint32_t    m_numNal;
-
+    //实际字符数据
     uint8_t*    m_buffer;
+    //已经占用字节数
     uint32_t    m_occupancy;
+    //字节容量
     uint32_t    m_allocSize;
 
     uint8_t*    m_extraBuffer;
     uint32_t    m_extraOccupancy;
     uint32_t    m_extraAllocSize;
+    //是否AnnexB码流格式
     bool        m_annexB;
 
     NALList();

@@ -97,6 +97,7 @@ public:
     bool                   m_reconfigureRc;
 
     float*                 m_quantOffsets;       // points to quantOffsets in x265_picture
+    //SEI信息
     x265_sei               m_userSEI;
     uint32_t               m_picStruct;          // picture structure SEI message
     x265_dolby_vision_rpu  m_rpu;
@@ -107,8 +108,10 @@ public:
     int32_t                m_numRows;
     volatile uint32_t      m_countRefEncoders;   // count of FrameEncoder threads monitoring m_reconRowCount
 
+    //前后帧
     Frame*                 m_next;               // PicList doubly linked list pointers
     Frame*                 m_prev;
+    //视频编辑参数
     x265_param*            m_param;              // Points to the latest param set for the frame.
     x265_analysis_data     m_analysisData;
     RcStats*               m_rcData;
@@ -120,8 +123,11 @@ public:
     int*                   m_prevCtuInfoChange;
     int64_t                m_encodeStartTime;
 
+    //CTU深度列表
     uint8_t**              m_addOnDepth;
+    //CTU扩展信息列表
     uint8_t**              m_addOnCtuInfo;
+    //上一个CTU列表
     int**                  m_addOnPrevChange;
 
     /* Average feature values of frames being considered for classification */
