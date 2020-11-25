@@ -104,11 +104,13 @@ void NALList::serialize(NalUnitType nalUnitType, const Bitstream& bs)
     }
     else if (!m_numNal || nalUnitType == NAL_UNIT_VPS || nalUnitType == NAL_UNIT_SPS || nalUnitType == NAL_UNIT_PPS || nalUnitType == NAL_UNIT_UNSPECIFIED)
     {
+        //第一个NALU或者是VPS,SPS,PPS,分隔符占用4字节：0x00000001
         memcpy(out, startCodePrefix, 4);
         bytes += 4;
     }
     else
     {
+        //分隔符：0x000001
         memcpy(out, startCodePrefix + 1, 3);
         bytes += 3;
     }
