@@ -295,7 +295,14 @@ int satd8(const pixel* pix1, intptr_t stride_pix1, const pixel* pix2, intptr_t s
 
     return satd;
 }
-
+/***
+ * 以8*8的哈达玛矩阵计算SATD(哈达玛变换后求各元素绝对值之和)
+ * @param pix1
+ * @param i_pix1
+ * @param pix2
+ * @param i_pix2
+ * @return
+ */
 inline int _sa8d_8x8(const pixel* pix1, intptr_t i_pix1, const pixel* pix2, intptr_t i_pix2)
 {
     sum2_t tmp[8][4];

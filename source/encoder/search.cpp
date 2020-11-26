@@ -1364,8 +1364,9 @@ void Search::checkIntraInInter(Mode& intraMode, const CUGeom& cuGeom)
     uint32_t mpmModes[3];
     uint32_t rbits = getIntraRemModeBits(cu, absPartIdx, mpmModes, mpms);
 
-    // DC
+    // DC 模式帧内预测
     primitives.cu[sizeIdx].intra_pred[DC_IDX](m_intraPredAngs, scaleStride, intraNeighbourBuf[0], 0, (scaleTuSize <= 16));
+    //计算SATD值，做为初步最优判断标准
     bsad = sa8d(fenc, scaleStride, m_intraPredAngs, scaleStride) << costShift;
     bmode = mode = DC_IDX;
     bbits = (mpms & ((uint64_t)1 << mode)) ? m_entropyCoder.bitsIntraModeMPM(mpmModes, mode) : rbits;

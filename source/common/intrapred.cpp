@@ -217,22 +217,33 @@ void intra_pred_ang_c(pixel* dst, intptr_t dstStride, const pixel *srcPix0, int 
         }
     }
 }
-
+/***
+ * 计算所有角度模式的预测值
+ * @tparam log2Size 待计算的块的宽度
+ * @param dest 预测块地址
+ * @param refPix 未滤波的参考像素
+ * @param filtPix 滤波后的参考像素
+ * @param bLuma 是否进行滤波（不是亮度）
+ */
 template<int log2Size>
 void all_angs_pred_c(pixel *dest, pixel *refPix, pixel *filtPix, int bLuma)
 {
     const int size = 1 << log2Size;
     for (int mode = 2; mode <= 34; mode++)
     {
+        // 获取滤波或则非滤波参考像素
         pixel *srcPix  = (g_intraFilterFlags[mode] & size ? filtPix  : refPix);
+        // 获取对应角度的预测值存储地址
         pixel *out = dest + ((mode - 2) << (log2Size * 2));
 
+        // 角度模式预测
         intra_pred_ang_c<size>(out, size, srcPix, mode, bLuma);
 
         // Optimize code don't flip buffer
         bool modeHor = (mode < 18);
 
         // transpose the block if this is a horizontal mode
+        // 如果水平模式  上部分是按照垂直模式计算的需要对其转置  （注意水平方式需要置换两次  因为transpose将原始块置换了）
         if (modeHor)
         {
             for (int k = 0; k < size - 1; k++)
@@ -254,21 +265,25 @@ namespace X265_NS {
 
 void setupIntraPrimitives_c(EncoderPrimitives& p)
 {
+    //滤波函数
     p.cu[BLOCK_4x4].intra_filter = intraFilter<4>;
     p.cu[BLOCK_8x8].intra_filter = intraFilter<8>;
     p.cu[BLOCK_16x16].intra_filter = intraFilter<16>;
     p.cu[BLOCK_32x32].intra_filter = intraFilter<32>;
 
+    //Planar模式
     p.cu[BLOCK_4x4].intra_pred[PLANAR_IDX] = planar_pred_c<2>;
     p.cu[BLOCK_8x8].intra_pred[PLANAR_IDX] = planar_pred_c<3>;
     p.cu[BLOCK_16x16].intra_pred[PLANAR_IDX] = planar_pred_c<4>;
     p.cu[BLOCK_32x32].intra_pred[PLANAR_IDX] = planar_pred_c<5>;
 
+    //DC模式
     p.cu[BLOCK_4x4].intra_pred[DC_IDX] = intra_pred_dc_c<4>;
     p.cu[BLOCK_8x8].intra_pred[DC_IDX] = intra_pred_dc_c<8>;
     p.cu[BLOCK_16x16].intra_pred[DC_IDX] = intra_pred_dc_c<16>;
     p.cu[BLOCK_32x32].intra_pred[DC_IDX] = intra_pred_dc_c<32>;
 
+    //角度预测
     for (int i = 2; i < NUM_INTRA_MODE; i++)
     {
         p.cu[BLOCK_4x4].intra_pred[i] = intra_pred_ang_c<4>;
@@ -276,7 +291,7 @@ void setupIntraPrimitives_c(EncoderPrimitives& p)
         p.cu[BLOCK_16x16].intra_pred[i] = intra_pred_ang_c<16>;
         p.cu[BLOCK_32x32].intra_pred[i] = intra_pred_ang_c<32>;
     }
-
+    //计算所有角度模式的预测值
     p.cu[BLOCK_4x4].intra_pred_allangs = all_angs_pred_c<2>;
     p.cu[BLOCK_8x8].intra_pred_allangs = all_angs_pred_c<3>;
     p.cu[BLOCK_16x16].intra_pred_allangs = all_angs_pred_c<4>;

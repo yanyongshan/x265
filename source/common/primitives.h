@@ -244,10 +244,12 @@ struct EncoderPrimitives
      * indexed by LumaPU values, which can be retrieved by partitionFromSizes() */
     struct PU
     {
+        //残差各元素绝对值之和，即SAD
         pixelcmp_t     sad;         // Sum of Absolute Differences
         pixelcmp_x3_t  sad_x3;      // Sum of Absolute Differences, 3 mv offsets at once
         pixelcmp_x4_t  sad_x4;      // Sum of Absolute Differences, 4 mv offsets at once
         pixelcmp_ads_t ads;         // Absolute Differences sum
+        //残差哈达玛变换后各元素绝对值之和，即SATD
         pixelcmp_t     satd;        // Sum of Absolute Transformed Differences (4x4 Hadamard)
 
         filter_pp_t    luma_hpp;    // 8-tap luma motion compensation interpolation filters
@@ -299,9 +301,11 @@ struct EncoderPrimitives
         pixel_sse_ss_t  sse_ss;        // Sum of Square Error (short, short) fenc alignment not assumed
         pixelcmp_t      psy_cost_pp;   // difference in AC energy between two pixel blocks
         pixel_ssd_s_t   ssd_s[NUM_ALIGNMENT_TYPES];         // Sum of Square Error (residual coeff to self)
+        //SATD计算函数
         pixelcmp_t      sa8d;          // Sum of Transformed Differences (8x8 Hadamard), uses satd for 4x4 intra TU
         transpose_t     transpose;     // transpose pixel block; for use with intra all-angs
         intra_allangs_t intra_pred_allangs;
+        //帧内预测时，对相邻像素的常规过滤滤波函数
         intra_filter_t  intra_filter;
         //帧内预测方法,见intrapred.cpp
         intra_pred_t    intra_pred[NUM_INTRA_MODE];
