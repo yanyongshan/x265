@@ -301,7 +301,16 @@ void Search::codeCoeffQTChroma(const CUData& cu, uint32_t tuDepth, uint32_t absP
             m_entropyCoder.codeCoeffNxN(cu, coeff + subTUSize, absPartIdx + tuNumParts, log2TrSizeC, ttype);
     }
 }
-
+/***
+ * 生成亮度帧内预测，并使用
+ * @param mode
+ * @param cuGeom
+ * @param tuDepth
+ * @param absPartIdx
+ * @param bAllowSplit
+ * @param outCost
+ * @param depthRange
+ */
 void Search::codeIntraLumaQT(Mode& mode, const CUGeom& cuGeom, uint32_t tuDepth, uint32_t absPartIdx, bool bAllowSplit, Cost& outCost, const uint32_t depthRange[2])
 {
     CUData& cu = mode.cu;
@@ -1288,6 +1297,7 @@ void Search::checkIntra(Mode& intraMode, const CUGeom& cuGeom, PartSize partSize
 
 /* Note that this function does not save the best intra prediction, it must
  * be generated later. It records the best mode in the cu */
+//使用sa8d成本选择最佳帧内模式
 void Search::checkIntraInInter(Mode& intraMode, const CUGeom& cuGeom)
 {
     ProfileCUScope(intraMode.cu, intraAnalysisElapsedTime, countIntraAnalysis);

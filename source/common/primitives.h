@@ -303,6 +303,7 @@ struct EncoderPrimitives
         transpose_t     transpose;     // transpose pixel block; for use with intra all-angs
         intra_allangs_t intra_pred_allangs;
         intra_filter_t  intra_filter;
+        //帧内预测方法,见intrapred.cpp
         intra_pred_t    intra_pred[NUM_INTRA_MODE];
         nonPsyRdoQuant_t nonPsyRdoQuant;
         psyRdoQuant_t    psyRdoQuant;

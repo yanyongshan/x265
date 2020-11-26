@@ -304,6 +304,7 @@ public:
     void     checkIntra(Mode& intraMode, const CUGeom& cuGeom, PartSize partSizes);
 
     // select best intra mode using only sa8d costs, cannot measure NxN intra
+    // 使用sa8d成本选择最佳帧内模式
     void     checkIntraInInter(Mode& intraMode, const CUGeom& cuGeom);
     // encode luma mode selected by checkIntraInInter, then pick and encode a chroma mode
     void     encodeIntraInInter(Mode& intraMode, const CUGeom& cuGeom);
@@ -398,11 +399,13 @@ protected:
     void     estimateResidualQT(Mode& mode, const CUGeom& cuGeom, uint32_t absPartIdx, uint32_t depth, ShortYuv& resiYuv, Cost& costs, const uint32_t depthRange[2], int32_t splitMore = -1);
 
     // generate prediction, generate residual and recon. if bAllowSplit, find optimal RQT splits
+    // 生成亮度帧内预测
     void     codeIntraLumaQT(Mode& mode, const CUGeom& cuGeom, uint32_t tuDepth, uint32_t absPartIdx, bool bAllowSplit, Cost& costs, const uint32_t depthRange[2]);
     void     codeIntraLumaTSkip(Mode& mode, const CUGeom& cuGeom, uint32_t tuDepth, uint32_t absPartIdx, Cost& costs);
     void     extractIntraResultQT(CUData& cu, Yuv& reconYuv, uint32_t tuDepth, uint32_t absPartIdx);
 
     // generate chroma prediction, generate residual and recon
+    // 生成色度帧内预测
     void     codeIntraChromaQt(Mode& mode, const CUGeom& cuGeom, uint32_t tuDepth, uint32_t absPartIdx, Cost& outCost);
     void     codeIntraChromaTSkip(Mode& mode, const CUGeom& cuGeom, uint32_t tuDepth, uint32_t tuDepthC, uint32_t absPartIdx, Cost& outCost);
     void     extractIntraResultChromaQT(CUData& cu, Yuv& reconYuv, uint32_t absPartIdx, uint32_t tuDepth);

@@ -27,7 +27,12 @@
 using namespace X265_NS;
 
 namespace {
-
+/***
+ * 帧内常规过滤滤波
+ * @tparam tuSize
+ * @param samples 原像素
+ * @param filtered 过滤后的像素
+ */
 template<int tuSize>
 void intraFilter(const pixel* samples, pixel* filtered) /* 1:2:1 filtering of left and top reference samples */
 {
@@ -84,15 +89,25 @@ void intra_pred_dc_c(pixel* dst, intptr_t dstStride, const pixel* srcPix, int /*
         dcPredFilter(srcPix + 1, srcPix + (2 * width + 1), dst, dstStride, width);
 }
 
+/***
+ * Planar模式预测
+ * @tparam log2Size 块大小指数
+ * @param dst 输出
+ * @param dstStride 源地址偏移
+ * @param srcPix 参考像素
+ */
 template<int log2Size>
 void planar_pred_c(pixel* dst, intptr_t dstStride, const pixel* srcPix, int /*dirMode*/, int /*bFilter*/)
 {
     const int blkSize = 1 << log2Size;
-
+    //srcPix即为左上角起始点R0,0（大小为4N+1个参考像素）
+    //左上角像素R1,0
     const pixel* above = srcPix + 1;
+    //左侧像素R0,1
     const pixel* left  = srcPix + (2 * blkSize + 1);
-
+    //右上像素
     pixel topRight = above[blkSize];
+    //左下像素
     pixel bottomLeft = left[blkSize];
     for (int y = 0; y < blkSize; y++)
         for (int x = 0; x < blkSize; x++)

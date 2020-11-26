@@ -241,7 +241,13 @@ void Predict::motionCompensation(const CUData& cu, const PredictionUnit& pu, Yuv
         }
     }
 }
-
+/***
+ * 亮度帧内预测
+ * @param pu
+ * @param dstYuv
+ * @param refPic
+ * @param mv
+ */
 void Predict::predInterLumaPixel(const PredictionUnit& pu, Yuv& dstYuv, const PicYuv& refPic, const MV& mv) const
 {
     pixel* dst = dstYuv.getLumaAddr(pu.puAbsPartIdx);
@@ -596,7 +602,17 @@ void Predict::predIntraChromaAng(uint32_t dirMode, pixel* dst, intptr_t stride, 
     int filter = !!(m_csp == X265_CSP_I444 && (g_intraFilterFlags[dirMode] & tuSize));
     primitives.cu[sizeIdx].intra_pred[dirMode](dst, stride, intraNeighbourBuf[filter], dirMode, 0);
 }
-
+/***
+ * 相邻参考像素处理和滤波处理，帧内预测过程
+ * ① 判断当前TU相邻参考像素是否可用并做相应的处理；
+ * ② 对参考像素进行滤波；
+ * ③ 根据滤波后的参考像素计算当前TU的预测像素值。
+ * @param cu
+ * @param cuGeom
+ * @param puAbsPartIdx
+ * @param intraNeighbors
+ * @param dirMode
+ */
 void Predict::initAdiPattern(const CUData& cu, const CUGeom& cuGeom, uint32_t puAbsPartIdx, const IntraNeighbors& intraNeighbors, int dirMode)
 {
     int tuSize = 1 << intraNeighbors.log2TrSize;
@@ -606,17 +622,22 @@ void Predict::initAdiPattern(const CUData& cu, const CUGeom& cuGeom, uint32_t pu
     pixel* adiOrigin = reconPic->getLumaAddr(cu.m_cuAddr, cuGeom.absPartIdx + puAbsPartIdx);
     intptr_t picStride = reconPic->m_stride;
 
+    //相邻参考像素处理
     fillReferenceSamples(adiOrigin, picStride, intraNeighbors, intraNeighbourBuf[0]);
 
+    //过滤前像素
     pixel* refBuf = intraNeighbourBuf[0];
+    //滤波后像素
     pixel* fltBuf = intraNeighbourBuf[1];
 
+    //参考像素滤波:强滤波
     pixel topLeft = refBuf[0], topLast = refBuf[tuSize2], leftLast = refBuf[tuSize2 + tuSize2];
 
     if (dirMode == ALL_IDX ? (8 | 16 | 32) & tuSize : g_intraFilterFlags[dirMode] & tuSize)
     {
         // generate filtered intra prediction samples
 
+        //参考像素滤波:强滤波
         if (cu.m_slice->m_sps->bUseStrongIntraSmoothing && tuSize == 32)
         {
             const int threshold = 1 << (X265_DEPTH - 5);
@@ -644,7 +665,7 @@ void Predict::initAdiPattern(const CUData& cu, const CUGeom& cuGeom, uint32_t pu
                 return;
             }
         }
-
+        //参考像素滤波:常规滤波
         primitives.cu[intraNeighbors.log2TrSize - 2].intra_filter(refBuf, fltBuf);
     }
 }
@@ -660,7 +681,14 @@ void Predict::initAdiPatternChroma(const CUData& cu, const CUGeom& cuGeom, uint3
     if (m_csp == X265_CSP_I444)
         primitives.cu[intraNeighbors.log2TrSize - 2].intra_filter(intraNeighbourBuf[0], intraNeighbourBuf[1]);
 }
-
+/***
+ * 获取邻近像素
+ * @param cu
+ * @param absPartIdx
+ * @param tuDepth
+ * @param isLuma
+ * @param intraNeighbors 邻近像素
+ */
 void Predict::initIntraNeighbors(const CUData& cu, uint32_t absPartIdx, uint32_t tuDepth, bool isLuma, IntraNeighbors *intraNeighbors)
 {
     uint32_t log2TrSize = cu.m_log2CUSize[0] - tuDepth;
@@ -713,19 +741,31 @@ void Predict::initIntraNeighbors(const CUData& cu, uint32_t absPartIdx, uint32_t
     intraNeighbors->unitHeight = 1 << log2UnitHeight;
     intraNeighbors->log2TrSize = log2TrSize;
 }
-
+/***
+ * 处理相邻参考像素，主要是为了补充一些没有的相邻像素
+ * @param adiOrigin 参考像素
+ * @param picStride 像素位置
+ * @param intraNeighbors 相邻参考信息
+ * @param dst 输出
+ */
 void Predict::fillReferenceSamples(const pixel* adiOrigin, intptr_t picStride, const IntraNeighbors& intraNeighbors, pixel dst[258])
 {
+    //默认固定值
     const pixel dcValue = (pixel)(1 << (X265_DEPTH - 1));
+    //参考像素个数
     int numIntraNeighbor = intraNeighbors.numIntraNeighbor;
+    //需要的参考像素总数
     int totalUnits = intraNeighbors.totalUnits;
+    //TU单位大小
     uint32_t tuSize = 1 << intraNeighbors.log2TrSize;
+    //顶部相关像素个数
     uint32_t refSize = tuSize * 2 + 1;
 
     // Nothing is available, perform DC prediction.
     if (numIntraNeighbor == 0)
     {
-        // Fill top border with DC value
+        //参考像素为空
+        // Fill top border with DC value 填充顶部元素为固定值
         for (uint32_t i = 0; i < refSize; i++)
             dst[i] = dcValue;
 
@@ -735,6 +775,7 @@ void Predict::fillReferenceSamples(const pixel* adiOrigin, intptr_t picStride, c
     }
     else if (numIntraNeighbor == totalUnits)
     {
+        //参考像素与需要的总数相同
         // Fill top border with rec. samples
         const pixel* adiTemp = adiOrigin - picStride - 1;
         memcpy(dst, adiTemp, refSize * sizeof(pixel));
