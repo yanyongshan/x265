@@ -75,7 +75,8 @@ public:
     ShortYuv  m_predShortYuv[2]; /* temporary storage for weighted prediction */
 
     // Unfiltered/filtered neighbours of the current partition.
-    //过滤前和过滤后相邻参考像素
+    // 过滤前和过滤后相邻参考像素4*N+1（第一维是参考数据，第二维是经过滤波后的数据）
+    // 以最大PU：64*64分配空间，分别为0:左上，1~64：上方，65~129：右上，129~193：左方，193~257：左下
     pixel     intraNeighbourBuf[2][258];
 
     /* Slice information */

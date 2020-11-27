@@ -274,6 +274,7 @@ struct EncoderPrimitives
      * primitives will leave 64x64 pointers NULL.  Indexed by LumaCU */
     struct CU
     {
+        //当前CU使用的离散余弦DCT变换函数
         dct_t           dct;    // active dct transformation
         idct_t          idct;   // active idct transformation
 
@@ -320,6 +321,7 @@ struct EncoderPrimitives
     /* These remaining primitives work on either fixed block sizes or take
      * block dimensions as arguments and thus do not belong in either the PU or
      * the CU arrays */
+    //DST离换正弦变换
     dct_t                 dst4x4;
     idct_t                idst4x4;
 

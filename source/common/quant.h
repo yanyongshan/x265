@@ -83,6 +83,7 @@ protected:
 
     QpParam            m_qpParam[3];
 
+    //RDOQ量化器
     int                m_rdoqLevel;
     int32_t            m_psyRdoqScale;  // dynamic range [0,50] * 256 = 14-bits
     int16_t*           m_resiDctCoeff;

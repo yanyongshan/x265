@@ -393,7 +393,20 @@ uint32_t Quant::signBitHidingHDQ(int16_t* coeff, int32_t* deltaU, uint32_t numSi
 
     return numSig;
 }
-
+/***
+ * 对残差块进行变换、量化
+ * @param cu
+ * @param fenc 原始图像
+ * @param fencStride 原始图像块的步长
+ * @param residual 残差数据
+ * @param resiStride 残差块的步长
+ * @param coeff 存储残差经过变换、量化后的系数
+ * @param log2TrSize TU尺寸
+ * @param ttype 数据分量类型（亮度/色度）
+ * @param absPartIdx  CU地址
+ * @param useTransformSkip 是否使用跳过变换模式
+ * @return
+ */
 uint32_t Quant::transformNxN(const CUData& cu, const pixel* fenc, uint32_t fencStride, const int16_t* residual, uint32_t resiStride,
                              coeff_t* coeff, uint32_t log2TrSize, TextType ttype, uint32_t absPartIdx, bool useTransformSkip)
 {
@@ -404,12 +417,14 @@ uint32_t Quant::transformNxN(const CUData& cu, const pixel* fenc, uint32_t fencS
         X265_CHECK(log2TrSize >= 2 && log2TrSize <= 5, "Block size mistake!\n");
         return primitives.cu[sizeIdx].copy_cnt(coeff, residual, resiStride);
     }
-
+    //是否为亮度块
     bool isLuma  = ttype == TEXT_LUMA;
+    //是否使用RDOQ量化器
     bool usePsy  = m_psyRdoqScale && isLuma && !useTransformSkip;
     int transformShift = MAX_TR_DYNAMIC_RANGE - X265_DEPTH - log2TrSize; // Represents scaling through forward transform
 
     X265_CHECK((cu.m_slice->m_sps->quadtreeTULog2MaxSize >= log2TrSize), "transform size too large\n");
+    //是否跳过变换
     if (useTransformSkip)
     {
 #if X265_DEPTH <= 10
@@ -424,11 +439,15 @@ uint32_t Quant::transformNxN(const CUData& cu, const pixel* fenc, uint32_t fencS
     }
     else
     {
+        //进行残差变换
+        //是否为帧内
         bool isIntra = cu.isIntra(absPartIdx);
 
+        //DST离散正弦变换(帧内亮度4*4块要求使用DST)
         if (!sizeIdx && isLuma && isIntra)
             primitives.dst4x4(residual, m_resiDctCoeff, resiStride);
         else
+            //其他类型根据块大小使用对应的的使用DCT离散余弦变换
             primitives.cu[sizeIdx].dct(residual, m_resiDctCoeff, resiStride);
 
         /* NOTE: if RDOQ is disabled globally, psy-rdoq is also disabled, so
@@ -451,6 +470,7 @@ uint32_t Quant::transformNxN(const CUData& cu, const pixel* fenc, uint32_t fencS
         }
     }
 
+    //使用RDOQ率失真优化量化器
     if (m_rdoqLevel)
         return (this->*rdoQuant_func[log2TrSize - 2])(cu, coeff, ttype, absPartIdx, usePsy);
     else

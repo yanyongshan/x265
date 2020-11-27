@@ -113,7 +113,15 @@ void planar_pred_c(pixel* dst, intptr_t dstStride, const pixel* srcPix, int /*di
         for (int x = 0; x < blkSize; x++)
             dst[y * dstStride + x] = (pixel) (((blkSize - 1 - x) * left[y] + (blkSize - 1 -y) * above[x] + (x + 1) * topRight + (y + 1) * bottomLeft + blkSize) >> (log2Size + 1));
 }
-
+/***
+ * 计算指点定角度模式化的预测值
+ * @tparam width 预测块大小
+ * @param dst 输出
+ * @param dstStride
+ * @param srcPix0 源参考像素
+ * @param dirMode 角度模式
+ * @param bFilter 是否使用滤波
+ */
 template<int width>
 void intra_pred_ang_c(pixel* dst, intptr_t dstStride, const pixel *srcPix0, int dirMode, int bFilter)
 {
