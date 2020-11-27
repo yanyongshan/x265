@@ -59,14 +59,22 @@ void setupLoopFilterPrimitives_c(EncoderPrimitives &p);
 void setupSaoPrimitives_c(EncoderPrimitives &p);
 void setupSeaIntegralPrimitives_c(EncoderPrimitives &p);
 void setupLowPassPrimitives_c(EncoderPrimitives& p);
-
+/***
+ * 初始化设置模块函数
+ * @param p
+ */
 void setupCPrimitives(EncoderPrimitives &p)
 {
+    //设置像素处理相关函数
     setupPixelPrimitives_c(p);      // pixel.cpp
+    //设置DCT变换相关函数
     setupDCTPrimitives_c(p);        // dct.cpp
+    //标准DCT变换相关函数
     setupLowPassPrimitives_c(p);    // lowpassdct.cpp
     setupFilterPrimitives_c(p);     // ipfilter.cpp
+    //设置帧内预测编码相关函数
     setupIntraPrimitives_c(p);      // intrapred.cpp
+    //设置环形滤波相关函数
     setupLoopFilterPrimitives_c(p); // loopfilter.cpp
     setupSaoPrimitives_c(p);        // sao.cpp
     setupSeaIntegralPrimitives_c(p);  // framefilter.cpp

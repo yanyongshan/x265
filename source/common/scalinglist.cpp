@@ -126,7 +126,9 @@ namespace X265_NS {
     };
 
 const int     ScalingList::s_numCoefPerSize[NUM_SIZES] = { 16, 64, 256, 1024 };
+//量化缩放因子
 const int32_t ScalingList::s_quantScales[NUM_REM] = { 26214, 23302, 20560, 18396, 16384, 14564 };
+//反量化伸缩因子
 const int32_t ScalingList::s_invQuantScales[NUM_REM] = { 40, 45, 51, 57, 64, 72 };
 
 ScalingList::ScalingList()

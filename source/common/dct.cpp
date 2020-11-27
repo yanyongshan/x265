@@ -201,7 +201,13 @@ static void partialButterfly32(const int16_t* src, int16_t* dst, int shift, int 
         dst++;
     }
 }
-
+/***
+ * 对指定块进行8x8DCT变换(整数DCT蝶形算法)
+ * @param src 残差数据
+ * @param dst 输出数据
+ * @param shift 行变换移位个数
+ * @param line 行数
+ */
 static void partialButterfly8(const int16_t* src, int16_t* dst, int shift, int line)
 {
     int j, k;
@@ -660,7 +666,17 @@ static void dequant_scaling_c(const int16_t* quantCoef, const int32_t* deQuantCo
         }
     }
 }
-
+/***
+ * 传统的HEVC标量量化计算
+ * @param coef 变换后的系数矩阵(量化前源数据)
+ * @param quantCoeff 前向量化表，即MF值
+ * @param deltaU 存储每一个位置量化误差的buffer
+ * @param qCoef 输出的量化后的系数矩阵
+ * @param qBits 量化中需要右移的位数
+ * @param add 为了补偿量化中右移操作，右移操作前需要加上的补偿加数
+ * @param numCoeff 当前变换块中变换系数的个数
+ * @return 返回量化后非零系数的个数
+ */
 static uint32_t quant_c(const int16_t* coef, const int32_t* quantCoeff, int32_t* deltaU, int16_t* qCoef, int qBits, int add, int numCoeff)
 {
     X265_CHECK(qBits >= 8, "qBits less than 8\n");
@@ -670,18 +686,23 @@ static uint32_t quant_c(const int16_t* coef, const int32_t* quantCoeff, int32_t*
 
     for (int blockpos = 0; blockpos < numCoeff; blockpos++)
     {
+        //DCT变换后的系数值
         int level = coef[blockpos];
+        //正负数标识
         int sign  = (level < 0 ? -1 : 1);
 
         int tmplevel = abs(level) * quantCoeff[blockpos];
+        //量化值为：abs(level)*MF >> (qbits)
         level = ((tmplevel + add) >> qBits);
+        //量化误差
         deltaU[blockpos] = ((tmplevel - (level << qBits)) >> qBits8);
         if (level)
             ++numSig;
         level *= sign;
+        //保证参数区间
         qCoef[blockpos] = (int16_t)x265_clip3(-32768, 32767, level);
     }
-
+    //返回量化后非零系数的个数
     return numSig;
 }
 
@@ -1074,7 +1095,9 @@ void setupDCTPrimitives_c(EncoderPrimitives& p)
 {
     p.dequant_scaling = dequant_scaling_c;
     p.dequant_normal = dequant_normal_c;
+    //传统标量量化方法
     p.quant = quant_c;
+    //传统反标量量化方法
     p.nquant = nquant_c;
     p.cu[BLOCK_4x4].nonPsyRdoQuant   = nonPsyRdoQuant_c<2>;
     p.cu[BLOCK_8x8].nonPsyRdoQuant   = nonPsyRdoQuant_c<3>;

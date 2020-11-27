@@ -48,7 +48,9 @@ public:
     int32_t  m_scalingListDC[NUM_SIZES][NUM_LISTS];   // the DC value of the matrix coefficient for 16x16
     int32_t* m_scalingListCoef[NUM_SIZES][NUM_LISTS]; // quantization matrix
 
+    //量化系数矩阵
     int32_t* m_quantCoef[NUM_SIZES][NUM_LISTS][NUM_REM];   // array of quantization matrix coefficient 4x4
+    //反量化系数矩阵
     int32_t* m_dequantCoef[NUM_SIZES][NUM_LISTS][NUM_REM]; // array of dequantization matrix coefficient 4x4
 
     bool     m_bEnabled;

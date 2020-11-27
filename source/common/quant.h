@@ -33,19 +33,29 @@ namespace X265_NS {
 // private namespace
 
 class CUData;
+//熵编码
 class Entropy;
+//熵编码参数
 struct TUEntropyCodingParameters;
-
+/***
+ * 量化参数
+ */
 struct QpParam
 {
+    //QP的余数部分 rem=QP%6
     int rem;
+    //得到Qp的倍数部分，实际上 per = QP/6
     int per;
+    //量化参数值
     int qp;
     int64_t lambda2; /* FIX8 */
     int32_t lambda;  /* FIX8, dynamic range is 18-bits in Main and 20-bits in Main10 */
 
     QpParam() : qp(MAX_INT) {}
-
+    /***
+     * 量化参数对象
+     * @param qpScaled 量化参数缩放
+     */
     void setQpParam(int qpScaled)
     {
         if (qp != qpScaled)
@@ -73,17 +83,20 @@ struct NoiseReduction
     uint32_t (*residualSum)[MAX_NUM_TR_COEFFS];
     uint32_t *count;
 };
-
+/***
+ * 量化
+ */
 class Quant
 {
 protected:
 
     const ScalingList* m_scalingList;
+    //熵编码实例
     Entropy*           m_entropyCoder;
 
     QpParam            m_qpParam[3];
 
-    //RDOQ量化器
+    //RDOQ量化器级别
     int                m_rdoqLevel;
     int32_t            m_psyRdoqScale;  // dynamic range [0,50] * 256 = 14-bits
     int16_t*           m_resiDctCoeff;
@@ -105,8 +118,26 @@ public:
     bool allocNoiseReduction(const x265_param& param);
 
     /* CU setup */
+    /***
+     * 为量化过程设置量化参数，用于控制量化步长
+     * @param ctu CTU数据
+     * @param qp 量化参数
+     */
     void setQPforQuant(const CUData& ctu, int qp);
-
+    /***
+     * 对残差块进行变换、量化
+     * @param cu
+     * @param fenc 原始图像
+     * @param fencStride 原始图像块的步长
+     * @param residual 残差数据
+     * @param resiStride 残差块的步长
+     * @param coeff 存储残差经过变换、量化后的系数
+     * @param log2TrSize TU尺寸
+     * @param ttype 数据分量类型（亮度/色度）
+     * @param absPartIdx  CU地址
+     * @param useTransformSkip 是否使用跳过变换模式
+     * @return
+     */
     uint32_t transformNxN(const CUData& cu, const pixel* fenc, uint32_t fencStride, const int16_t* residual, uint32_t resiStride, coeff_t* coeff,
                           uint32_t log2TrSize, TextType ttype, uint32_t absPartIdx, bool useTransformSkip);
 

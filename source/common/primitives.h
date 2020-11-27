@@ -278,6 +278,7 @@ struct EncoderPrimitives
         dct_t           dct;    // active dct transformation
         idct_t          idct;   // active idct transformation
 
+        //标准DCT
         dct_t           standard_dct;   // original dct function, used by lowpass_dct
         dct_t           lowpass_dct;    // lowpass dct approximation
 
@@ -324,7 +325,7 @@ struct EncoderPrimitives
     //DST离换正弦变换
     dct_t                 dst4x4;
     idct_t                idst4x4;
-
+    //传统量化计算，见dct.cpp中的quant_c和setupDCTPrimitives_c
     quant_t               quant;
     nquant_t              nquant;
     dequant_scaling_t     dequant_scaling;

@@ -421,6 +421,7 @@ uint32_t Quant::transformNxN(const CUData& cu, const pixel* fenc, uint32_t fencS
     bool isLuma  = ttype == TEXT_LUMA;
     //是否使用RDOQ量化器
     bool usePsy  = m_psyRdoqScale && isLuma && !useTransformSkip;
+    //整数DCT变换时缩放因子指数，即T_Shift
     int transformShift = MAX_TR_DYNAMIC_RANGE - X265_DEPTH - log2TrSize; // Represents scaling through forward transform
 
     X265_CHECK((cu.m_slice->m_sps->quadtreeTULog2MaxSize >= log2TrSize), "transform size too large\n");
@@ -439,16 +440,17 @@ uint32_t Quant::transformNxN(const CUData& cu, const pixel* fenc, uint32_t fencS
     }
     else
     {
-        //进行残差变换
+        //进行常规残差变换
         //是否为帧内
         bool isIntra = cu.isIntra(absPartIdx);
 
-        //DST离散正弦变换(帧内亮度4*4块要求使用DST)
-        if (!sizeIdx && isLuma && isIntra)
+        if (!sizeIdx && isLuma && isIntra) {
+            //DST离散正弦变换(帧内亮度4*4块要求使用DST)
             primitives.dst4x4(residual, m_resiDctCoeff, resiStride);
-        else
+        } else {
             //其他类型根据块大小使用对应的的使用DCT离散余弦变换
             primitives.cu[sizeIdx].dct(residual, m_resiDctCoeff, resiStride);
+        }
 
         /* NOTE: if RDOQ is disabled globally, psy-rdoq is also disabled, so
          * there is no risk of performing this DCT unnecessarily */
@@ -470,22 +472,29 @@ uint32_t Quant::transformNxN(const CUData& cu, const pixel* fenc, uint32_t fencS
         }
     }
 
-    //使用RDOQ率失真优化量化器
+    // 如果RDOQ的级别大于0，才进行RDOQ量化，否则使用常规（均匀）量化
     if (m_rdoqLevel)
         return (this->*rdoQuant_func[log2TrSize - 2])(cu, coeff, ttype, absPartIdx, usePsy);
     else
     {
+        // 用于存储量化误差矩阵，在常规量化中，deltaU只用于进行符号位隐藏的操作
         int deltaU[32 * 32];
 
+        // 根据预测模式和亮度/色度分量得到 前向量化表的类型，用于选择不同的前向量化表
         int scalingListType = (cu.isIntra(absPartIdx) ? 0 : 3) + ttype;
+        // 量化参数的余数
         int rem = m_qpParam[ttype].rem;
+        // 量化参数的倍数 QP/6
         int per = m_qpParam[ttype].per;
+        // 根据TU的尺寸、前向量化类型和Qp余数部分，选择对应的量化表，即MF值
         const int32_t* quantCoeff = m_scalingList->m_quantCoef[log2TrSize - 2][scalingListType][rem];
 
+        //qbits+T_Shift
         int qbits = QUANT_SHIFT + per + transformShift;
         int add = (cu.m_slice->m_sliceType == I_SLICE ? 171 : 85) << (qbits - 9);
         int numCoeff = 1 << (log2TrSize * 2);
 
+        //执行量化操作(进行常规量化，参看C版本函数 dct.cpp中quant_c，返回值为量化后非零系数的个数)
         uint32_t numSig = primitives.quant(m_resiDctCoeff, quantCoeff, deltaU, coeff, qbits, add, numCoeff);
 
         if (numSig >= 2 && cu.m_slice->m_pps->bSignHideEnabled)

@@ -56,6 +56,7 @@ extern uint32_t g_maxCUDepth;
 extern uint32_t g_unitSizeDepth; // Depth at which 4x4 unit occurs from max CU size
 extern uint32_t g_maxSlices; // number of Slices
 
+//分别为DCT整数变换矩阵
 extern const int16_t g_t4[4][4];
 extern const int16_t g_t8[8][8];
 extern const int16_t g_t16[16][16];

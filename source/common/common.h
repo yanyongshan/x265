@@ -156,6 +156,7 @@ typedef uint64_t sse_t;
 #define MAX_INT64       0x7FFFFFFFFFFFFFFFLL  // max. value of signed 64-bit integer
 #define MAX_DOUBLE      1.7e+308    // max. value of double-type value
 
+//量化参数，标准规定0~51
 #define QP_MIN          0
 #define QP_MAX_SPEC     51 /* max allowed signaled QP in HEVC */
 #define QP_MAX_MAX      69 /* max allowed QP to be output by rate control */
