@@ -243,7 +243,7 @@ void all_angs_pred_c(pixel *dest, pixel *refPix, pixel *filtPix, int bLuma)
         bool modeHor = (mode < 18);
 
         // transpose the block if this is a horizontal mode
-        // 如果水平模式  上部分是按照垂直模式计算的需要对其转置  （注意水平方式需要置换两次  因为transpose将原始块置换了）
+        // 如果水平模式  上部分是按照垂直模式计算的需要对其转置 （注意水平方式需要置换两次  因为transpose将原始块置换了）
         if (modeHor)
         {
             for (int k = 0; k < size - 1; k++)
@@ -283,7 +283,7 @@ void setupIntraPrimitives_c(EncoderPrimitives& p)
     p.cu[BLOCK_16x16].intra_pred[DC_IDX] = intra_pred_dc_c<16>;
     p.cu[BLOCK_32x32].intra_pred[DC_IDX] = intra_pred_dc_c<32>;
 
-    //角度预测
+    //指定角度预测
     for (int i = 2; i < NUM_INTRA_MODE; i++)
     {
         p.cu[BLOCK_4x4].intra_pred[i] = intra_pred_ang_c<4>;
@@ -291,6 +291,7 @@ void setupIntraPrimitives_c(EncoderPrimitives& p)
         p.cu[BLOCK_16x16].intra_pred[i] = intra_pred_ang_c<16>;
         p.cu[BLOCK_32x32].intra_pred[i] = intra_pred_ang_c<32>;
     }
+
     //计算所有角度模式的预测值
     p.cu[BLOCK_4x4].intra_pred_allangs = all_angs_pred_c<2>;
     p.cu[BLOCK_8x8].intra_pred_allangs = all_angs_pred_c<3>;
