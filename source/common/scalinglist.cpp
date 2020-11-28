@@ -29,7 +29,10 @@ namespace {
 // file-anonymous namespace
 
 /* Strings for scaling list file parsing */
-
+//量化矩阵主要用于不同位置使用不同的量化步长，HEVC有两种量化比例缩放矩阵4*4，8*8
+/***
+ * 4*4量化比例缩放矩阵
+ */
 static int quantTSDefault4x4[16] =
 {
     16, 16, 16, 16,
@@ -37,7 +40,9 @@ static int quantTSDefault4x4[16] =
     16, 16, 16, 16,
     16, 16, 16, 16
 };
-
+/***
+ * 8*8量化比例缩放矩阵
+ */
 static int quantIntraDefault8x8[64] =
 {
     16, 16, 16, 16, 17, 18, 21, 24,
@@ -49,7 +54,9 @@ static int quantIntraDefault8x8[64] =
     21, 22, 25, 31, 41, 54, 70, 88,
     24, 25, 29, 36, 47, 65, 88, 115
 };
-
+/***
+ * 8*8量化矩阵
+ */
 static int quantInterDefault8x8[64] =
 {
     16, 16, 16, 16, 17, 18, 20, 24,
@@ -124,20 +131,25 @@ namespace X265_NS {
             "",
         },
     };
-
+// 不同变换块大小，对应的变换系数个数，（4x4：16，8x8：64，16x16：265，32x32：1024）
 const int     ScalingList::s_numCoefPerSize[NUM_SIZES] = { 16, 64, 256, 1024 };
-//量化缩放因子
+//前向量化系数表（根据QP大小，选择量化放大系数，MF值）
 const int32_t ScalingList::s_quantScales[NUM_REM] = { 26214, 23302, 20560, 18396, 16384, 14564 };
-//反量化伸缩因子
+//反量化系数表
 const int32_t ScalingList::s_invQuantScales[NUM_REM] = { 40, 45, 51, 57, 64, 72 };
-
+/****
+ * 缩放列表，主要功能是用于：变换矩阵的缩放和量化系数缩放
+ */
 ScalingList::ScalingList()
 {
     memset(m_quantCoef, 0, sizeof(m_quantCoef));
     memset(m_dequantCoef, 0, sizeof(m_dequantCoef));
     memset(m_scalingListCoef, 0, sizeof(m_scalingListCoef));
 }
-
+/***
+ * 初始化量化结果数据
+ * @return
+ */
 bool ScalingList::init()
 {
     bool ok = true;
@@ -149,6 +161,7 @@ bool ScalingList::init()
             ok &= !!m_scalingListCoef[sizeId][listId];
             for (int rem = 0; rem < NUM_REM; rem++)
             {
+                //根据大小分配量化结果矩阵内存
                 m_quantCoef[sizeId][listId][rem] = X265_MALLOC(int32_t, s_numCoefPerSize[sizeId]);
                 m_dequantCoef[sizeId][listId][rem] = X265_MALLOC(int32_t, s_numCoefPerSize[sizeId]);
                 ok &= m_quantCoef[sizeId][listId][rem] && m_dequantCoef[sizeId][listId][rem];
@@ -208,7 +221,12 @@ bool ScalingList::checkDefaultScalingList() const
 
     return defaultCounter != (NUM_LISTS * NUM_SIZES - 4); // -4 for 32x32
 }
-
+/***
+ * 根据不同的TU尺寸，不同的list类型得到不同的默认量化矩阵
+ * @param sizeId TU大小
+ * @param listId
+ * @return
+ */
 /* get address of default quantization matrix */
 const int32_t* ScalingList::getScalingListDefaultAddress(int sizeId, int listId) const
 {
@@ -339,7 +357,9 @@ bool ScalingList::parseScalingList(const char* filename)
 
     return false;
 }
-
+/***
+ * 设置量化矩阵
+ */
 /** set quantized matrix coefficient for encode */
 void ScalingList::setupQuantMatrices(int internalCsp)
 {
@@ -352,6 +372,7 @@ void ScalingList::setupQuantMatrices(int internalCsp)
 
         for (int list = 0; list < NUM_LISTS; list++)
         {
+            //量化矩阵
             int32_t *coeff = m_scalingListCoef[size][list];
             int32_t dc = m_scalingListDC[size][list];
 
@@ -393,7 +414,17 @@ void ScalingList::setupQuantMatrices(int internalCsp)
         }
     }
 }
-
+/***
+ * 变换矩阵后的缩放处理，即:DCT系数矩阵X量化矩阵
+ * @param coeff 量化矩阵
+ * @param quantcoeff 量化系数矩阵
+ * @param quantScales 量化放大因子MF值
+ * @param height
+ * @param width
+ * @param ratio 采样率（用于下采样到4*4，8*8量化矩阵）
+ * @param stride 量化矩阵宽度
+ * @param dc
+ */
 void ScalingList::processScalingListEnc(int32_t *coeff, int32_t *quantcoeff, int32_t quantScales, int height, int width,
                                         int ratio, int stride, int32_t dc)
 {
