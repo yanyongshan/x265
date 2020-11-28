@@ -48,13 +48,14 @@ struct QpParam
     int per;
     //量化参数值
     int qp;
+    //率失真优化lambda值
     int64_t lambda2; /* FIX8 */
     int32_t lambda;  /* FIX8, dynamic range is 18-bits in Main and 20-bits in Main10 */
 
     QpParam() : qp(MAX_INT) {}
     /***
      * 量化参数对象
-     * @param qpScaled 量化参数缩放
+     * @param qpScaled 量化参数
      */
     void setQpParam(int qpScaled)
     {
@@ -99,6 +100,7 @@ protected:
     //RDOQ量化器级别
     int                m_rdoqLevel;
     int32_t            m_psyRdoqScale;  // dynamic range [0,50] * 256 = 14-bits
+    //DCT变换后的变换系数矩阵
     int16_t*           m_resiDctCoeff;
     int16_t*           m_fencDctCoeff;
     int16_t*           m_fencShortBuf;

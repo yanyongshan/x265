@@ -109,7 +109,7 @@ double x265_lambda2_tab[QP_MAX_MAX + 1] =
 };
 
 #else /* !HIGH_BIT_DEPTH */
-
+// 拉格朗日因子索引表
 // lambda = pow(2, (double)q / 6 - 2);
 double x265_lambda_tab[QP_MAX_MAX + 1] =
 {
@@ -128,7 +128,7 @@ double x265_lambda_tab[QP_MAX_MAX + 1] =
     256.0000, 287.3503, 322.5398, 362.0387, 406.3747,
     456.1401, 512.0000, 574.7006, 645.0796, 724.0773
 };
-
+// 拉格朗日因子索引表
 // lambda2 = 0.038 * exp(0.234 * QP)
 double x265_lambda2_tab[QP_MAX_MAX + 1] =
 {

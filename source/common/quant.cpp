@@ -394,7 +394,7 @@ uint32_t Quant::signBitHidingHDQ(int16_t* coeff, int32_t* deltaU, uint32_t numSi
     return numSig;
 }
 /***
- * 对残差块进行变换、量化
+ * 对残差块进行变换+量化
  * @param cu
  * @param fenc 原始图像
  * @param fencStride 原始图像块的步长
@@ -474,6 +474,7 @@ uint32_t Quant::transformNxN(const CUData& cu, const pixel* fenc, uint32_t fencS
 
     // 如果RDOQ的级别大于0，才进行RDOQ量化，否则使用常规（均匀）量化
     if (m_rdoqLevel)
+        //使用率失优化量化
         return (this->*rdoQuant_func[log2TrSize - 2])(cu, coeff, ttype, absPartIdx, usePsy);
     else
     {
@@ -635,34 +636,54 @@ void Quant::invtransformNxN(const CUData& cu, int16_t* residual, uint32_t resiSt
 
 /* Rate distortion optimized quantization for entropy coding engines using
  * probability models like CABAC */
+/***
+ * 率失真优化量化，即RDOQ
+ * @tparam log2TrSize
+ * @param cu
+ * @param dstCoeff
+ * @param ttype
+ * @param absPartIdx
+ * @param usePsy
+ * @return
+ */
 template<uint32_t log2TrSize>
 uint32_t Quant::rdoQuant(const CUData& cu, int16_t* dstCoeff, TextType ttype, uint32_t absPartIdx, bool usePsy)
 {
+    //整数DCT矩阵变换时放大倍数的指数，即T_Shift
     const int transformShift = MAX_TR_DYNAMIC_RANGE - X265_DEPTH - log2TrSize; /* Represents scaling through forward transform */
     int scalingListType = (cu.isIntra(absPartIdx) ? 0 : 3) + ttype;
     const uint32_t usePsyMask = usePsy ? -1 : 0;
 
     X265_CHECK(scalingListType < 6, "scaling list type out of range\n");
-
+    //量化参数的余数QP%6
     int rem = m_qpParam[ttype].rem;
+    //量化参数QP的倍数部分，实际上 per = QP/6
     int per = m_qpParam[ttype].per;
     int qbits = QUANT_SHIFT + per + transformShift; /* Right shift of non-RDOQ quantizer level = (coeff*Q + offset)>>q_bits */
     int add = (1 << (qbits - 1));
+    //量化表，即MF值
     const int32_t* qCoef = m_scalingList->m_quantCoef[log2TrSize - 2][scalingListType][rem];
 
+    //需要量化的变换参数数量
     const int numCoeff = 1 << (log2TrSize * 2);
+    //预量化
     uint32_t numSig = primitives.nquant(m_resiDctCoeff, qCoef, dstCoeff, qbits, add, numCoeff);
     X265_CHECK((int)numSig == primitives.cu[log2TrSize - 2].count_nonzero(dstCoeff), "numSig differ\n");
     if (!numSig)
         return 0;
     const uint32_t trSize = 1 << log2TrSize;
+    //RDO中的lambda值
     int64_t lambda2 = m_qpParam[ttype].lambda2;
+    //心理视觉量化系数
     int64_t psyScale = ((int64_t)m_psyRdoqScale * m_qpParam[ttype].lambda);
     /* unquant constants for measuring distortion. Scaling list quant coefficients have a (1 << 4)
      * scale applied that must be removed during unquant. Note that in real dequant there is clipping
      * at several stages. We skip the clipping for simplicity when measuring RD cost */
+    //反量化乘数
     const int32_t* unquantScale = m_scalingList->m_dequantCoef[log2TrSize - 2][scalingListType][rem];
+    //反量化右移位数
     int unquantShift = QUANT_IQUANT_SHIFT - QUANT_SHIFT - transformShift + (m_scalingList->m_bEnabled ? 4 : 0);
+    // 反量化右移时补偿加数
     int unquantRound = (unquantShift > per) ? 1 << (unquantShift - per - 1) : 0;
     const int scaleBits = SCALE_BITS - 2 * transformShift;
 
@@ -671,20 +692,31 @@ uint32_t Quant::rdoQuant(const CUData& cu, int16_t* dstCoeff, TextType ttype, ui
 #define RDCOST(d, bits) ((((int64_t)d * d) << scaleBits) + SIGCOST(bits))
 #define PSYVALUE(rec)   ((psyScale * (rec)) >> X265_MAX(0, (2 * transformShift + 1)))
 
+    // 以下是系数级别的变量，即每个系数都占用一个存储单元
+    // 每一个系数花费
     int64_t costCoeff[trSize * trSize];   /* d*d + lambda * bits */
+    // 每一个系数被量化为0的花费（Z型顺序存储）
     int64_t costUncoded[trSize * trSize]; /* d*d + lambda * 0    */
+    // 每一个系数的是否为0标记(sig_coeff_flag)的花费
     int64_t costSig[trSize * trSize];     /* lambda * bits       */
 
     int rateIncUp[trSize * trSize];      /* signal overhead of increasing level */
     int rateIncDown[trSize * trSize];    /* signal overhead of decreasing level */
+    // 将系数量化为0和量化为非0，系数标记（sig_coeff_flag）的花费差异
     int sigRateDelta[trSize * trSize];   /* signal difference between zero and non-zero */
 
+    // 以下是系数组（CG）级别的变量
+    // 每一个系数组CG的花费
     int64_t costCoeffGroupSig[MLS_GRP_NUM]; /* lambda * bits of group coding cost */
+    // CG的非零标记，每一位代表一个CG，某一位为1代表对应的CG不是全0，反之代表对应的CG为全0
     uint64_t sigCoeffGroupFlag64 = 0;
 
+    // 一个系数组CG中的系数个数
     const uint32_t cgSize = (1 << MLS_CG_SIZE); /* 4x4 num coef = 16 */
+    // 当前是否是亮度分量
     bool bIsLuma = ttype == TEXT_LUMA;
 
+    // 当前块都被量化为0时的cost
     /* total rate distortion cost of transform block, as CBF=0 */
     int64_t totalUncodedCost = 0;
 
@@ -693,14 +725,20 @@ uint32_t Quant::rdoQuant(const CUData& cu, int16_t* dstCoeff, TextType ttype, ui
      * coefficient and coefficient group bitmaps */
     int64_t totalRdCost = 0;
 
+    // 得到熵编码参数
     TUEntropyCodingParameters codeParams;
     cu.getTUEntropyCodingParameters(codeParams, absPartIdx, log2TrSize, bIsLuma);
     const uint32_t log2TrSizeCG = log2TrSize - 2;
+    // TU中的系数组CG的个数
     const uint32_t cgNum = 1 << (log2TrSizeCG * 2);
+    // TU中CG的步长
     const uint32_t cgStride = (trSize >> MLS_CG_LOG2_SIZE);
 
+    // 每个CG中的非零系数的个数
     uint8_t coeffNum[MLS_GRP_NUM];      // value range[0, 16]
+    // 每个CG中的非零系数的符号
     uint16_t coeffSign[MLS_GRP_NUM];    // bit mask map for non-zero coeff sign
+    // 每个CG中的非零系数的标记
     uint16_t coeffFlag[MLS_GRP_NUM];    // bit mask map for non-zero coeff
 
 #if CHECKED_BUILD || _DEBUG
@@ -709,7 +747,9 @@ uint32_t Quant::rdoQuant(const CUData& cu, int16_t* dstCoeff, TextType ttype, ui
     memset(coeffSign, 0, sizeof(coeffNum));
     memset(coeffFlag, 0, sizeof(coeffNum));
 #endif
+    // 统计每个CG中的非零系数的符号、非零系数的标志（是否是非零系数）、非零系数个数，以及最后一个非零系数的扫描位置（lastScanPos）
     const int lastScanPos = primitives.scanPosLast(codeParams.scan, dstCoeff, coeffSign, coeffFlag, coeffNum, numSig, g_scan4x4[codeParams.scanType], trSize);
+    // 得到最后一个非零系数的扫描位置（lastScanPos）所对应的系数组CG的位置
     const int cgLastScanPos = (lastScanPos >> LOG2_SCAN_SET_SIZE);
 
 
@@ -729,6 +769,7 @@ uint32_t Quant::rdoQuant(const CUData& cu, int16_t* dstCoeff, TextType ttype, ui
     /* sum zero coeff (uncodec) cost */
 
     // TODO: does we need these cost?
+    // 如果使用心理视觉量化
     if (usePsyMask)
     {
         for (int cgScanPos = cgLastScanPos + 1; cgScanPos < (int)cgNum ; cgScanPos++)
@@ -753,12 +794,17 @@ uint32_t Quant::rdoQuant(const CUData& cu, int16_t* dstCoeff, TextType ttype, ui
     }
     else
     {
+        // 不使用心理视觉量化，对量化为全零的CG计算每个系数的cost
         // non-psy path
+        // 遍历每一个全零的CG
         for (int cgScanPos = cgLastScanPos + 1; cgScanPos < (int)cgNum ; cgScanPos++)
         {
             X265_CHECK(coeffNum[cgScanPos] == 0, "count of coeff failure\n");
+            // 得到每个CG的首地址（这里的CG顺序是Z型扫描，而不是按照选择的scan模式扫描）
             uint32_t scanPosBase = (cgScanPos << MLS_CG_SIZE);
+            // 找到一个CG首地址对应的扫描位置
             uint32_t blkPos      = codeParams.scan[scanPosBase];
+            //RDOQ量化
             primitives.cu[log2TrSize - 2].nonPsyRdoQuant(m_resiDctCoeff, costUncoded, &totalUncodedCost, &totalRdCost, blkPos);
         }
     }
@@ -802,12 +848,18 @@ uint32_t Quant::rdoQuant(const CUData& cu, int16_t* dstCoeff, TextType ttype, ui
     };
 
     /* iterate over coding groups in reverse scan order */
+    // step1. 对每个系数单独做RDO优化，找到率失真意义上的最优量化值
+    // 从最后一非零CG开始遍历每个CG，从最后一个到第一个
     for (int cgScanPos = cgLastScanPos; cgScanPos >= 0; cgScanPos--)
     {
         uint32_t ctxSet = (cgScanPos && bIsLuma) ? 2 : 0;
+        // 得到CG的扫描位置
         const uint32_t cgBlkPos = codeParams.scanCG[cgScanPos];
+        // CG扫描位置的Y坐标
         const uint32_t cgPosY   = cgBlkPos >> log2TrSizeCG;
+        // CG扫描位置的X坐标
         const uint32_t cgPosX   = cgBlkPos & ((1 << log2TrSizeCG) - 1);
+        // 当前CG的位置，使用cgBlkPosMask中1的位置来表示
         const uint64_t cgBlkPosMask = ((uint64_t)1 << cgBlkPos);
         const int patternSigCtx = calcPatternSigCtx(sigCoeffGroupFlag64, cgPosX, cgPosY, cgBlkPos, cgStride);
         const int ctxSigOffset = codeParams.firstSignificanceMapContext + (cgScanPos && bIsLuma ? 3 : 0);
@@ -816,11 +868,14 @@ uint32_t Quant::rdoQuant(const CUData& cu, int16_t* dstCoeff, TextType ttype, ui
             ctxSet++;
         c1 = 1;
 
+        // 如果当前CG不是第一个CG，并且CG系数为全零，即在最后一个非全零CG可能还会存在全零的CG
+        // 如果发现全零的CG，处理方法与上文中，最后一个非零CG之后的CG的处理方法相同；但是对这些系数又计算了量化为0和非零时，系数标记的花费，这是为了之后进行step2、step3的优化
         if (cgScanPos && (coeffNum[cgScanPos] == 0))
         {
             // TODO: does we need zero-coeff cost?
             const uint32_t scanPosBase = (cgScanPos << MLS_CG_SIZE);
             uint32_t blkPos = codeParams.scan[scanPosBase];
+            // 如果使用心理视觉量化
             if (usePsyMask)
             {
 #if X265_ARCH_X86
