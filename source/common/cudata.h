@@ -37,7 +37,7 @@ class FrameData;
 class Slice;
 struct TUEntropyCodingParameters;
 struct CUDataMemPool;
-
+//PU划方方式
 enum PartSize
 {
     SIZE_2Nx2N, // symmetric motion partition,  2Nx2N
@@ -50,7 +50,7 @@ enum PartSize
     SIZE_nRx2N, // asymmetric motion partition, (3N/2)x2N + ( N/2)x2N
     NUM_SIZES
 };
-
+//预测模式
 enum PredMode
 {
     MODE_NONE  = 0,
@@ -69,26 +69,39 @@ enum MVP_DIR
     MD_ABOVE_LEFT,  // MVP of above left block
     MD_COLLOCATED   // MVP of temporal neighbour
 };
-
+//CU的几何结构信息，即CU节点
 struct CUGeom
 {
+    //CU划分Flgs
     enum {
         INTRA           = 1<<0, // CU is intra predicted
+        // CU不是完全在图像外（只要有一部分在图像内就有此标志位）
         PRESENT         = 1<<1, // CU is not completely outside the frame
+        // CU节点为被推荐划分（一般是处于边界情况，当前CU一部分内容在图像外面）
         SPLIT_MANDATORY = 1<<2, // CU split is mandatory if CU is inside frame and can be split
+        // CU是叶子节点，即是8x8块（默认配置最小CU是8x8的情况下）值为 8
         LEAF            = 1<<3, // CU is a leaf node of the CTU
+        // 确定划分 SPLIT_MANDATORY 出现一定出现SPLIT
         SPLIT           = 1<<4, // CU is currently split in four child CUs.
     };
     
     // (1 + 4 + 16 + 64) = 85.
+    //最多CU几何个数，即划分节点个数
     enum { MAX_GEOMS = 85 };
 
+    //CU大小
     uint32_t log2CUSize;    // Log of the CU size.
+    // 表示从当前位置到第一个子cU的偏移量
     uint32_t childOffset;   // offset of the first child CU from current CU
+    // 当前CU在LCU中4x4 zizag地址
     uint32_t absPartIdx;    // Part index of this CU in terms of 4x4 blocks.
+    // 当前CU有多少4x4块
     uint32_t numPartitions; // Number of 4x4 blocks in the CU
+    // 当前CU的块状态
     uint32_t flags;         // CU flags.
+    // 当前CU的深度
     uint32_t depth;         // depth of this CU relative from CTU
+    // 最前CU索引
     uint32_t geomRecurId;   // Unique geom id from 0 to MAX_GEOMS - 1 for every depth
 };
 

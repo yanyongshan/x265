@@ -2100,16 +2100,27 @@ void CUData::getTUEntropyCodingParameters(TUEntropyCodingParameters &result, uin
 }
 
 #define CU_SET_FLAG(bitfield, flag, value) (bitfield) = ((bitfield) & (~(flag))) | ((~((value) - 1)) & (flag))
-
+/***
+ * 分解CTU结构为CU节点
+ * @param ctuWidth CTU的宽度
+ * @param ctuHeight CTU的高度
+ * @param maxCUSize 最大CU大小
+ * @param minCUSize 最小CU大小
+ * @param cuDataArray CU几何结构列表
+ */
 void CUData::calcCTUGeoms(uint32_t ctuWidth, uint32_t ctuHeight, uint32_t maxCUSize, uint32_t minCUSize, CUGeom cuDataArray[CUGeom::MAX_GEOMS])
 {
+    //4*4分区大小
     uint32_t num4x4Partition = (1U << ((g_log2Size[maxCUSize] - LOG2_UNIT_SIZE) << 1));
 
     // Initialize the coding blocks inside the CTB
     for (uint32_t log2CUSize = g_log2Size[maxCUSize], rangeCUIdx = 0; log2CUSize >= g_log2Size[minCUSize]; log2CUSize--)
     {
+        //块大小，即像素宽度
         uint32_t blockSize = 1 << log2CUSize;
+        //当前行可多分多少块
         uint32_t sbWidth   = 1 << (g_log2Size[maxCUSize] - log2CUSize);
+        //是否为最后一级CU，即叶子节点
         int32_t lastLevelFlag = log2CUSize == g_log2Size[minCUSize];
 
         for (uint32_t sbY = 0; sbY < sbWidth; sbY++)

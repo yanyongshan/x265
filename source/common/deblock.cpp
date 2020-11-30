@@ -36,10 +36,11 @@ using namespace X265_NS;
 
 void Deblock::deblockCTU(const CUData* ctu, const CUGeom& cuGeom, int32_t dir)
 {
+    //块边界强度数组，最多256个块（4*4）
     uint8_t blockStrength[MAX_NUM_PARTITIONS];
-
+    //默认BS=0
     memset(blockStrength, 0, sizeof(uint8_t) * cuGeom.numPartitions);
-
+    //对每个CU进行去方块滤波
     deblockCU(ctu, cuGeom, dir, blockStrength);
 }
 
@@ -70,8 +71,8 @@ static inline uint8_t bsCuEdge(const CUData* cu, uint32_t absPartIdx, int32_t di
 /* Deblocking filter process in CU-based (the same function as conventional's)
  * param Edge the direction of the edge in block boundary (horizonta/vertical), which is added newly */
 /***
- * 对CU进行块滤波操作
- * @param cu CU数据
+ * 对CU进行去方块滤波操作
+ * @param cu CTU引用
  * @param cuGeom
  * @param dir
  * @param blockStrength
