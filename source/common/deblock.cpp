@@ -69,9 +69,17 @@ static inline uint8_t bsCuEdge(const CUData* cu, uint32_t absPartIdx, int32_t di
 
 /* Deblocking filter process in CU-based (the same function as conventional's)
  * param Edge the direction of the edge in block boundary (horizonta/vertical), which is added newly */
+/***
+ * 对CU进行块滤波操作
+ * @param cu CU数据
+ * @param cuGeom
+ * @param dir
+ * @param blockStrength
+ */
 void Deblock::deblockCU(const CUData* cu, const CUGeom& cuGeom, const int32_t dir, uint8_t blockStrength[])
 {
     uint32_t absPartIdx = cuGeom.absPartIdx;
+
     uint32_t depth = cuGeom.depth;
     if (cu->m_predMode[absPartIdx] == MODE_NONE)
         return;
@@ -187,14 +195,24 @@ void Deblock::setEdgefilterPU(const CUData* cu, uint32_t absPartIdx, int32_t dir
         break;
     }
 }
-
+/****
+ * 获取边界强度,即BS值
+ * @param cuQ CU块中的Q块
+ * @param dir 方向 边界方向
+ * @param partQ Q的索引
+ * @param blockStrength 块边界
+ * @return 边界强度BS值
+ */
 uint8_t Deblock::getBoundaryStrength(const CUData* cuQ, int32_t dir, uint32_t partQ, const uint8_t blockStrength[])
 {
     // Calculate block index
+    //P块在CU的索引值
     uint32_t partP;
+    //获取P块
     const CUData* cuP = (dir == EDGE_VER ? cuQ->getPULeft(partP, partQ) : cuQ->getPUAbove(partP, partQ));
 
     // Set BS for Intra MB : BS = 2
+    //如果P或者Q是帧内预测，即BS=2
     if (cuP->isIntra(partP) || cuQ->isIntra(partQ))
         return 2;
 

@@ -32,10 +32,13 @@ namespace X265_NS {
 
 class CUData;
 struct CUGeom;
-
+/***
+ * 方块滤波
+ */
 class Deblock
 {
 public:
+    //边缘方向：垂直和水平方向
     enum { EDGE_VER, EDGE_HOR };
 
     static void deblockCTU(const CUData* ctu, const CUGeom& cuGeom, int32_t dir);
