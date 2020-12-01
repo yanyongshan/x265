@@ -32,7 +32,7 @@
 
 namespace X265_NS {
 // private namespace
-
+//5路SAO补偿模式
 enum SAOType
 {
     SAO_EO_0 = 0,

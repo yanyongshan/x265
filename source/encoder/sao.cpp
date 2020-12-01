@@ -94,17 +94,22 @@ SAO::SAO()
 bool SAO::create(x265_param* param, int initCommon)
 {
     m_param = param;
+    //色度格式
     m_chromaFormat = param->internalCsp;
     m_hChromaShift = CHROMA_H_SHIFT(param->internalCsp);
     m_vChromaShift = CHROMA_V_SHIFT(param->internalCsp);
 
+    //宽度方向CTU个数
     m_numCuInWidth =  (m_param->sourceWidth + m_param->maxCUSize - 1) / m_param->maxCUSize;
     m_numCuInHeight = (m_param->sourceHeight + m_param->maxCUSize - 1) / m_param->maxCUSize;
 
+    //最大亮度值
     const pixel maxY = (1 << X265_DEPTH) - 1;
     const pixel rangeExt = maxY >> 1;
+    //CTU数量
     int numCtu = m_numCuInWidth * m_numCuInHeight;
 
+    //分配
     for (int i = 0; i < (param->internalCsp != X265_CSP_I400 ? 3 : 1); i++)
     {
         CHECKED_MALLOC(m_tmpL1[i], pixel, m_param->maxCUSize + 1);

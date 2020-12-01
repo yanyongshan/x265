@@ -197,13 +197,20 @@ bool FrameEncoder::init(Encoder *top, int numRows, int numCols)
 }
 
 /* Generate a complete list of unique geom sets for the current picture dimensions */
+/***
+ * 计算CU的几何信息
+ * @return
+ */
 bool FrameEncoder::initializeGeoms()
 {
     /* Geoms only vary between CTUs in the presence of picture edges */
     int maxCUSize = m_param->maxCUSize;
     int minCUSize = m_param->minCUSize;
+    //高度不够CTU的余数
     int heightRem = m_param->sourceHeight & (maxCUSize - 1);
+    // 宽度不够CTU的余数
     int widthRem = m_param->sourceWidth & (maxCUSize - 1);
+    // 存储的个数：分别为：CTU中全部像素值  CTU右边不够像素值   CTU下边不够像素值  CTU右边和下边不够像素值
     int allocGeoms = 1; // body
     if (heightRem && widthRem)
         allocGeoms = 4; // body, right, bottom, corner

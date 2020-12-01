@@ -881,6 +881,7 @@ typedef struct x265_param
      * minimum requirement. All valid HEVC widths are supported */
     int       sourceWidth;
 
+    //图片高度，如果不是4的整数倍，编码器内部会补齐
     /* Height (in pixels) of the source pictures. If this height is not an even
      * multiple of 4, the encoder will pad the pictures internally to meet this
      * minimum requirement. All valid HEVC heights are supported */
