@@ -817,7 +817,17 @@ void blockcopy_ps_c(int16_t* a, intptr_t stridea, const pixel* b, intptr_t strid
         b += strideb;
     }
 }
-
+/***
+ * 计算像素差异
+ * @tparam bx 宽度
+ * @tparam by 高度
+ * @param a  diff差值数组指针
+ * @param dstride 目标步长
+ * @param b0 原始像素
+ * @param b1 重构像素（解码还原像素）
+ * @param sstride0 原始像素步长
+ * @param sstride1 重构像素步长
+ */
 template<int bx, int by>
 void pixel_sub_ps_c(int16_t* a, intptr_t dstride, const pixel* b0, const pixel* b1, intptr_t sstride0, intptr_t sstride1)
 {

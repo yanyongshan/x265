@@ -798,7 +798,9 @@ void SAO::calcSaoStatsCTU(int addr, int plane)
     Slice* slice = m_frame->m_encData->m_slice;
     const PicYuv* reconPic = m_frame->m_reconPic;
     const CUData* cu = m_frame->m_encData->getPicCTU(addr);
+    //原始帧像素
     const pixel* fenc0 = m_frame->m_fencPic->getPlaneAddr(plane, addr);
+    //重构帧像素
     const pixel* rec0  = reconPic->getPlaneAddr(plane, addr);
     const pixel* fenc;
     const pixel* rec;
@@ -860,6 +862,7 @@ void SAO::calcSaoStatsCTU(int addr, int plane)
         // 对于square的CU可以采用SIMD流指令计算(fenc - frec),
         // 此处 MAX_CU_SIZE = 64 可以看作 diff的跨度，fenc0和rec0的跨度都是stride
         if (plane)
+            //色度计算失真差值
             primitives.chroma[m_chromaFormat].cu[m_param->maxLog2CUSize - 2].sub_ps(diff, MAX_CU_SIZE, fenc0, rec0, stride, stride);
         else
            primitives.cu[m_param->maxLog2CUSize - 2].sub_ps(diff, MAX_CU_SIZE, fenc0, rec0, stride, stride);
