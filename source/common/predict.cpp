@@ -74,8 +74,8 @@ bool Predict::allocBuffers(int csp)
     return m_predShortYuv[0].create(MAX_CU_SIZE, csp) && m_predShortYuv[1].create(MAX_CU_SIZE, csp);
 }
 /***
- * 运动补偿
- * @param cu
+ * 获取运动补偿后的像素值(结果为predYuv)
+ * @param cu 当前CU
  * @param pu 当前PU信息
  * @param predYuv 预测结果
  * @param bLuma 是否为亮度块
