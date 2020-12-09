@@ -73,12 +73,20 @@ bool Predict::allocBuffers(int csp)
 
     return m_predShortYuv[0].create(MAX_CU_SIZE, csp) && m_predShortYuv[1].create(MAX_CU_SIZE, csp);
 }
-
+/***
+ * 运动补偿
+ * @param cu
+ * @param pu 当前PU信息
+ * @param predYuv 预测结果
+ * @param bLuma 是否为亮度块
+ * @param bChroma 是否为色度块
+ */
 void Predict::motionCompensation(const CUData& cu, const PredictionUnit& pu, Yuv& predYuv, bool bLuma, bool bChroma)
 {
     int refIdx0 = cu.m_refIdx[0][pu.puAbsPartIdx];
     int refIdx1 = cu.m_refIdx[1][pu.puAbsPartIdx];
 
+    //P帧
     if (cu.m_slice->isInterP())
     {
         /* P Slice */
@@ -86,11 +94,15 @@ void Predict::motionCompensation(const CUData& cu, const PredictionUnit& pu, Yuv
 
         X265_CHECK(refIdx0 >= 0, "invalid P refidx\n");
         X265_CHECK(refIdx0 < cu.m_slice->m_numRefIdx[0], "P refidx out of range\n");
+        //加权预测参数
         const WeightParam *wp0 = cu.m_slice->m_weightPredTable[0][refIdx0];
 
+        //获取当前PU的运动向量
         MV mv0 = cu.m_mv[0][pu.puAbsPartIdx];
+        //修正运动向量至图片范围之内
         cu.clipMv(mv0);
 
+        //是否使用加权预测
         if (cu.m_slice->m_pps->bUseWeightPred && wp0->wtPresent)
         {
             for (int plane = 0; plane < (bChroma ? 3 : 1); plane++)
@@ -242,14 +254,15 @@ void Predict::motionCompensation(const CUData& cu, const PredictionUnit& pu, Yuv
     }
 }
 /***
- * 亮度帧内预测
- * @param pu
- * @param dstYuv
- * @param refPic
- * @param mv
+ * 获取亮度帧间预测像素（根据参块块和MV,获取预测像素块）
+ * @param pu 预测单元
+ * @param dstYuv 当前帧
+ * @param refPic 参考块
+ * @param mv 运动向量
  */
 void Predict::predInterLumaPixel(const PredictionUnit& pu, Yuv& dstYuv, const PicYuv& refPic, const MV& mv) const
 {
+    //获取当前像素块首地址
     pixel* dst = dstYuv.getLumaAddr(pu.puAbsPartIdx);
     intptr_t dstStride = dstYuv.m_size;
 

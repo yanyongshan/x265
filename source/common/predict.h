@@ -36,12 +36,16 @@ namespace X265_NS {
 class CUData;
 class Slice;
 struct CUGeom;
-
+//预测单元
 struct PredictionUnit
 {
+    //当前CTU的地址
     uint32_t     ctuAddr;      // raster index of current CTU within its picture
+    //当前CU在CTU中的索引
     uint32_t     cuAbsPartIdx; // z-order offset of current CU within its CTU
+    //当前PU在CU中的索引
     uint32_t     puAbsPartIdx; // z-order offset of current PU with its CU
+    //PU大小
     int          width;
     int          height;
 
@@ -60,15 +64,24 @@ public:
         int w, o, offset, shift, round;
     };
 
+    //帧内预测：用于存储周边块的可用标记等信息
     struct IntraNeighbors
     {
+        //统计当前预测块周边多少可用4x4相邻块
         int      numIntraNeighbor;
+        //周边4x4块个数  左下、左边、左上角1个、上边、右上
         int      totalUnits;
+        //上边4x4个数：上边 右上
         int      aboveUnits;
+        //左边4x4个数：左边、左下
         int      leftUnits;
+        //当前最小块宽度，4
         int      unitWidth;
+        //当前最小块高度，4
         int      unitHeight;
+        //当前PU-TU深度
         int      log2TrSize;
+        //空间大小为65  存储周边标记是否可用  存储方式： 左下、左边(左下和左边按照离左上角由远及近存储0：左下左下像素点....左上角4x4块像素点）、左上角一点、上边、右上
         bool     bNeighborFlags[4 * MAX_NUM_SPU_W + 1];
     };
 
@@ -90,6 +103,13 @@ public:
     bool allocBuffers(int csp);
 
     // motion compensation functions
+    /***
+     * 帧间亮度预测
+     * @param pu
+     * @param dstYuv
+     * @param refPic
+     * @param mv 运动向量
+     */
     void predInterLumaPixel(const PredictionUnit& pu, Yuv& dstYuv, const PicYuv& refPic, const MV& mv) const;
     void predInterChromaPixel(const PredictionUnit& pu, Yuv& dstYuv, const PicYuv& refPic, const MV& mv) const;
 
@@ -102,6 +122,13 @@ public:
     void motionCompensation(const CUData& cu, const PredictionUnit& pu, Yuv& predYuv, bool bLuma, bool bChroma);
 
     /* Angular Intra */
+    /***
+     * 按照当前的亮度预测方向获取预测值
+     * @param dirMode  当前亮度方向
+     * @param pred PU预测块地址
+     * @param stride  原始块步长
+     * @param log2TrSize 当前PU的最大变换大小
+     */
     void predIntraLumaAng(uint32_t dirMode, pixel* pred, intptr_t stride, uint32_t log2TrSize);
     void predIntraChromaAng(uint32_t dirMode, pixel* pred, intptr_t stride, uint32_t log2TrSizeC);
     void initAdiPattern(const CUData& cu, const CUGeom& cuGeom, uint32_t puAbsPartIdx, const IntraNeighbors& intraNeighbors, int dirMode);
@@ -110,6 +137,13 @@ public:
     /* Intra prediction helper functions */
     static void initIntraNeighbors(const CUData& cu, uint32_t absPartIdx, uint32_t tuDepth, bool isLuma, IntraNeighbors *IntraNeighbors);
     static void fillReferenceSamples(const pixel* adiOrigin, intptr_t picStride, const IntraNeighbors& intraNeighbors, pixel dst[258]);
+    /***
+     * 返回当前左上角像素点是否可用
+     * @tparam cip 帧内预测是否受限（不能参考inter块）
+     * @param cu 当前编码的CU
+     * @param partIdxLT 当前PU左上角像素点在CTU中的zigzag标号
+     * @return 返回当前左上角像素点是否可用
+     */
     template<bool cip>
     static bool isAboveLeftAvailable(const CUData& cu, uint32_t partIdxLT);
     template<bool cip>

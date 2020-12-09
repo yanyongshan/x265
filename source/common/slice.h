@@ -275,7 +275,9 @@ struct PPS
     int      deblockingFilterBetaOffsetDiv2;
     int      deblockingFilterTcOffsetDiv2;
 
+    //P Slice是否使用加权预测
     bool     bUseWeightPred;         // use param
+    //B Slice是否使用加权预测
     bool     bUseWeightedBiPred;     // use param
     bool     bUseDQP;
     bool     bConstrainedIntraPred;  // use param
@@ -291,13 +293,17 @@ struct PPS
     int      numRefIdxDefault[2];
     bool     pps_slice_chroma_qp_offsets_present_flag;
 };
-
+//加权预测参数
 struct WeightParam
 {
     // Explicit weighted prediction parameters parsed in slice header,
+    //亮度加权因子整数化时放大的倍数（权重系数左移位个数（为了保证精度））
     uint32_t log2WeightDenom;
+    //权重系数    整个的权重系数等于:（1<<（7-log2WeightDenom）) + inputWeight
     int      inputWeight;
+    //offset信息 整帧所有像素偏移值
     int      inputOffset;
+    //是否加权
     int      wtPresent;
 
     /* makes a non-h265 weight (i.e. fix7), into an h265 weight */
@@ -328,16 +334,22 @@ class Slice
 {
 public:
 
+    //指向encoder的SPS
     const SPS*  m_sps;
+    //指向encoder的PPS
     const PPS*  m_pps;
     Frame*      m_refFrameList[2][MAX_NUM_REF + 1];
     PicYuv*     m_refReconPicList[2][MAX_NUM_REF + 1];
 
+    // 参考帧加权状态信息 (每个list的第一帧分析加权与否，其它不加权) [list][refIdx][0:Y, 1:U, 2:V]
     WeightParam m_weightPredTable[2][MAX_NUM_REF][3]; // [list][refIdx][0:Y, 1:U, 2:V]
+    //指向FrameEncoder中对应的参考帧信息
     MotionReference (*m_mref)[MAX_NUM_REF + 1];
     RPS         m_rps;
 
+    //NALU类型
     NalUnitType m_nalUnitType;
+    //在DPB::prepareEncode函数确定slice类型：B_SLICE,P_SLICE,I_SLICE
     SliceType   m_sliceType;
     int         m_sliceQp;
     int         m_chromaQpOffset[2];
