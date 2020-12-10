@@ -83,7 +83,9 @@ bool Predict::allocBuffers(int csp)
  */
 void Predict::motionCompensation(const CUData& cu, const PredictionUnit& pu, Yuv& predYuv, bool bLuma, bool bChroma)
 {
+    //获取P帧参考帧PU在CU的索引
     int refIdx0 = cu.m_refIdx[0][pu.puAbsPartIdx];
+    //获取B帧参考帧PU在CU的索引
     int refIdx1 = cu.m_refIdx[1][pu.puAbsPartIdx];
 
     //P帧
@@ -268,6 +270,7 @@ void Predict::predInterLumaPixel(const PredictionUnit& pu, Yuv& dstYuv, const Pi
 
     intptr_t srcStride = refPic.m_stride;
     intptr_t srcOffset = (mv.x >> 2) + (mv.y >> 2) * srcStride;
+    //获取PU分配模式枚举值
     int partEnum = partitionFromSizes(pu.width, pu.height);
     const pixel* src = refPic.getLumaAddr(pu.ctuAddr, pu.cuAbsPartIdx + pu.puAbsPartIdx) + srcOffset;
 

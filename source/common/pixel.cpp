@@ -762,7 +762,15 @@ int psyCost_pp(const pixel* source, intptr_t sstride, const pixel* recon, intptr
         return abs(sourceEnergy - reconEnergy);
     }
 }
-
+/***
+ * 复制像素块
+ * @tparam bx 块大小，宽度
+ * @tparam by 块大小，高度
+ * @param a 目标
+ * @param stridea 目标步长
+ * @param b 源像素块
+ * @param strideb 源步长
+ */
 template<int bx, int by>
 void blockcopy_pp_c(pixel* a, intptr_t stridea, const pixel* b, intptr_t strideb)
 {

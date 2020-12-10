@@ -339,6 +339,7 @@ public:
     //指向encoder的PPS
     const PPS*  m_pps;
     Frame*      m_refFrameList[2][MAX_NUM_REF + 1];
+    //参考帧原始像素
     PicYuv*     m_refReconPicList[2][MAX_NUM_REF + 1];
 
     // 参考帧加权状态信息 (每个list的第一帧分析加权与否，其它不加权) [list][refIdx][0:Y, 1:U, 2:V]
