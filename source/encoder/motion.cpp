@@ -36,15 +36,23 @@ using namespace X265_NS;
 
 namespace {
 
+// 分像素搜索中需要设置的参数
 struct SubpelWorkload
 {
+    // 1/2像素搜索迭代次数
     int hpel_iters;
+    // 1/2像素搜索方向数（点数）
     int hpel_dirs;
+    // 1/4像素搜索迭代次数
     int qpel_iters;
+    // 1/4像素搜索方向数（点数）
     int qpel_dirs;
+    // 分像素搜索中是否使用satd
     bool hpel_satd;
 };
 
+// 根据输入参数subpelRefine,选择不同的分像素搜索参数
+// 搜索性能从0到7逐渐增加,搜索复杂度也随之增加
 const SubpelWorkload workload[X265_MAX_SUBPEL_LEVEL + 1] =
 {
     { 1, 4, 0, 4, false }, // 4 SAD HPEL only
@@ -311,7 +319,9 @@ void MotionEstimate::setSourcePU(const Yuv& srcFencYuv, int _ctuAddr, int cuPart
     COPY3_IF_LT(bcost, costs[1], bmv.x, m1x, bmv.y, m1y); \
     COPY3_IF_LT(bcost, costs[2], bmv.x, m2x, bmv.y, m2y); \
 }
-
+//搜索菱形或者正方形的四个顶点，并将cost存入costs中
+// 计算MVD的cost分为两个部分。第一部分MVD消耗的cost，这部分上次搜索最优的MV与最初的预测MVP之间的MVD
+// 计算第二部分MVD消耗的cost，这部分是此次搜索的MV与上次搜索最优的MV之间的MVD，两次加起来也就是当前MV与MVP之间的MVD
 #define COST_MV_X4_DIR(m0x, m0y, m1x, m1y, m2x, m2y, m3x, m3y, costs) \
     { \
         pixel *pix_base = fref + bmv.x + bmv.y * stride; \
@@ -333,6 +343,9 @@ void MotionEstimate::setSourcePU(const Yuv& srcFencYuv, int _ctuAddr, int cuPart
         COST_MV_X4(0, -1, 0, 1, -1, 0, 1, 0); \
     }
 
+// 进行十字搜索
+// 首先进行第一次十字搜索：检查十字中横轴上的点（起始点由start决定），之后检查十字中纵轴上的点(均以距离2向外圈扩散)
+// 之后进行第二次十字搜索：检查十字中纵轴上的点（起始点由start决定），之后检查十字中横轴上的点(均以距离2向外圈扩散)
 #define CROSS(start, x_max, y_max) \
     { \
         int16_t i = start; \
@@ -735,7 +748,20 @@ void MotionEstimate::refineMV(ReferencePlanes* ref,
     x265_emms();
     outQMv = bmv;
 }
-
+/***
+ * 运动估计，获取最优的MV
+ * @param ref
+ * @param mvmin 最小MV（整像素精度）
+ * @param mvmax 最大MV(整像素精度）
+ * @param qmvp MVP（分像素精度（1/4））
+ * @param numCandidates 当前的候选参考帧个数
+ * @param mvc 当前的MVC（MV candidates）列表
+ * @param merange 当前的搜索窗口
+ * @param outQMv 返回最优的MV
+ * @param maxSlices
+ * @param srcReferencePlane
+ * @return
+ */
 int MotionEstimate::motionEstimate(ReferencePlanes *ref,
                                    const MV &       mvmin,
                                    const MV &       mvmax,
@@ -819,6 +845,7 @@ int MotionEstimate::motionEstimate(ReferencePlanes *ref,
     {
     case X265_DIA_SEARCH:
     {
+        // 菱形（迭代）搜索
         /* diamond search, radius 1 */
         bcost <<= 4;
         int i = merange;
@@ -1393,7 +1420,7 @@ me_hex2:
             x265_free(meScratchBuffer);
         break;
     }
-
+    //全搜索算法
     case X265_FULL_SEARCH:
     {
         // dead slow exhaustive search, but at least it uses sad_x4()

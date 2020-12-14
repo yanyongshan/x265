@@ -43,7 +43,7 @@ public:
     pixel*   m_picOrg[3];  // pointers to plane starts
 
     uint32_t m_picWidth;
-    uint32_t m_picHeight;
+    uint32_t m_picHeight;\
     intptr_t m_stride;
     intptr_t m_strideC;
 

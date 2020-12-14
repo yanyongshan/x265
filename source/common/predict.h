@@ -119,7 +119,15 @@ public:
     void addWeightBi(const PredictionUnit& pu, Yuv& predYuv, const ShortYuv& srcYuv0, const ShortYuv& srcYuv1, const WeightValues wp0[3], const WeightValues wp1[3], bool bLuma, bool bChroma) const;
     void addWeightUni(const PredictionUnit& pu, Yuv& predYuv, const ShortYuv& srcYuv, const WeightValues wp[3], bool bLuma, bool bChroma) const;
 
-    void motionCompensation(const CUData& cu, const PredictionUnit& pu, Yuv& predYuv, bool bLuma, bool bChroma);
+    /***
+     * 获取运动补偿后的像素值(结果为predYuv)
+     * @param cu 当前CU
+     * @param pu 当前PU信息
+     * @param predYuv 预测结果
+     * @param bLuma 是否为亮度块
+     * @param bChroma 是否为色度块
+     */
+    void motionCompensation(const CUData &cu, const PredictionUnit &pu, Yuv &predYuv, bool bLuma, bool bChroma);
 
     /* Angular Intra */
     /***

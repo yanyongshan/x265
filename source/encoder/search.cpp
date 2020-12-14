@@ -2191,6 +2191,13 @@ void Search::searchMV(Mode& interMode, int list, int ref, MV& outmv, MV mvp[3], 
     }
 }
 /* find the best inter prediction for each PU of specified mode */
+/***
+ * 帧内运动估计查找最佳帧内预测
+ * @param interMode
+ * @param cuGeom
+ * @param bChromaMC
+ * @param refMasks
+ */
 void Search::predInterSearch(Mode& interMode, const CUGeom& cuGeom, bool bChromaMC, uint32_t refMasks[2])
 {
     ProfileCUScope(interMode.cu, motionEstimationElapsedTime, countMotionEstimate);
